@@ -17,8 +17,6 @@
 #include <QThread>
 #include <QWaitCondition>
 #include <QMutex>
-#include <iostream>
-#include <math.h>
 
 //----------------------------------------------------------------------------------------------------------------------------
 rx_hackrf::rx_hackrf(QObject *parent) : QObject(parent)
@@ -117,12 +115,12 @@ int rx_hackrf::init(double _rf_frequency, int _gain_db)
         gain_db = 78;
         agc = true;
     }
-    sample_rate = 10000000.0f; // max for 10bit (10000000.0f for 8bit)
+    sample_rate = 8000000.0f; // max for 10bit (10000000.0f for 8bit)
     ret = hackrf_open( &_dev );
     hackrf_set_sample_rate( _dev, sample_rate );
     hackrf_set_freq( _dev, uint64_t(rf_frequency) );
     gain_db = _gain_db;
-    uint32_t bw = hackrf_compute_baseband_filter_bw( uint32_t(7000000.0) );
+    uint32_t bw = hackrf_compute_baseband_filter_bw( uint32_t(8000000.0) );
     ret = hackrf_set_baseband_filter_bandwidth( _dev, bw );
     set_gain(gain_db);
 
@@ -152,7 +150,13 @@ int rx_hackrf::init(double _rf_frequency, int _gain_db)
 
     return ret;
 }
-
+//----------------------------------------------------------------------------------------------------------------------------
+void rx_hackrf::set_frequency(double _freq)
+{
+    int err=hackrf_set_freq( _dev, uint64_t(_freq) );
+    if(err != 0)
+        emit status(err);
+}
 //----------------------------------------------------------------------------------------------------------------------------
 void rx_hackrf::set_gain(int gain)
 {
@@ -166,7 +170,7 @@ void rx_hackrf::set_gain(int gain)
         gain = 0;
     }
     hackrf_set_lna_gain( _dev, uint32_t(clip_gain) );
-    std::cerr<<"LNA="<<clip_gain<<"\n";
+    fprintf(stderr,"LNA=%d\n",clip_gain);
     clip_gain=0;
     if(gain)
     {
@@ -178,7 +182,7 @@ void rx_hackrf::set_gain(int gain)
             clip_gain = 0;
     }
     hackrf_set_amp_enable( _dev, clip_gain?1:0 );
-    std::cerr<<"AMP="<<clip_gain<<"\n";
+    fprintf(stderr,"AMP=%d\n",clip_gain);
     clip_gain=0;
     if(gain)
     {
@@ -186,10 +190,10 @@ void rx_hackrf::set_gain(int gain)
         {
             clip_gain = 50;
         }else
-            clip_gain = gain+10;
+            clip_gain = gain;
     }
     hackrf_set_vga_gain( _dev, uint32_t(clip_gain) );
-    std::cerr<<"VGA="<<clip_gain<<"\n";
+    fprintf(stderr,"VGA=%d\n",clip_gain);
 }
 //----------------------------------------------------------------------------------------------------------------------------
 int rx_hackrf::callback(hackrf_transfer* transfer)
@@ -226,6 +230,7 @@ void rx_hackrf::rx_execute(void *in_ptr, int nsamples)
     ptr_q_buffer += nsamples;
 
     if(mutex_out->try_lock()) {
+        fprintf(stderr,"blocks=%d\n",blocks);
         frame->get_signal_estimate(change_frequency, frequency_offset,
                                    change_gain, gain_offset);
         if(!frequency_changed) {
@@ -237,7 +242,7 @@ void rx_hackrf::rx_execute(void *in_ptr, int nsamples)
             float correct = -frequency_offset / static_cast<float>(rf_frequency);
             frame->correct_resample(correct);
             rf_frequency += static_cast<int64_t>(frequency_offset);
-            err = hackrf_set_freq( _dev, uint64_t(rf_frequency));
+            //err = hackrf_set_freq( _dev, uint64_t(rf_frequency));
             if(err < 0) emit status(err);
             frequency_changed = false;
             emit radio_frequency(rf_frequency);
@@ -252,7 +257,6 @@ void rx_hackrf::rx_execute(void *in_ptr, int nsamples)
         if(agc && change_gain) {
             gain_changed = false;
             gain_db += gain_offset;
-            set_gain(gain_db);
             if(err < 0) emit status(err);
             start_wait_gain_changed = clock();
             emit level_gain(gain_db);

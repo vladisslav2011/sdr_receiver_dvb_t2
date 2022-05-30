@@ -48,10 +48,11 @@ signals:
 public slots:
     void start();
     void stop();
+    void set_frequency(double _freq);
+    void set_gain(int gain);
 private:
     void rx_execute(void *ptr, int nsamples);
     static int callback(hackrf_transfer* transfer);
-    void set_gain(int gain);
 
 private:
     QThread* thread;
@@ -62,7 +63,7 @@ private:
     float sample_rate;
     const int len_out_device = 128*1024;
 //    const int max_blocks = 24576 * 2;//12288;//768
-    const int max_blocks = 8192;//12288;//768
+    const int max_blocks = 2048;//12288;//768
     int blocks = 1;
     int max_len_out = 0;
     int len_buffer = 0;

@@ -18,7 +18,6 @@
 #include <immintrin.h>
 
 #include "DSP/fast_math.h"
-#include <iostream>
 
 //----------------------------------------------------------------------------------------------------------------------------
 dvbt2_frame::dvbt2_frame(QWaitCondition *_signal_in, QMutex *_mutex_in, id_device_t _id_device,
@@ -65,8 +64,8 @@ dvbt2_frame::dvbt2_frame(QWaitCondition *_signal_in, QMutex *_mutex_in, id_devic
     case id_hackrf:
         convert_input = 1;
         short_to_float = 1.0f / (1 << 7);
-        level_max = 0.08f;
-        level_min = level_max - 0.06f;
+        level_max = 0.07f;
+        level_min = 0.03f;
         break;
     }
 
@@ -213,12 +212,10 @@ void dvbt2_frame::execute(int _len_in, int16_t* _i_in, int16_t* _q_in,
     if(check_gain) {
         check_gain = false;
         if(level_detect < level_min) {
-            std::cerr<<"level_detect="<<level_detect<<" < level_min="<<level_min<<"\n";
             gain_offset = 1;
             change_gain = true;
         }
         else if(level_detect > level_max) {
-            std::cerr<<"level_detect="<<level_detect<<" > level_max="<<level_max<<"\n";
             gain_offset = -1;
             change_gain = true;
         }

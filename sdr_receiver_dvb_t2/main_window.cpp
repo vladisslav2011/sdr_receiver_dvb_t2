@@ -437,6 +437,18 @@ void main_window::disconnect_info()
 void main_window::radio_frequency(double _rf)
 {
     ui->label_info_rf->setText("radio frequency (Hz) : " + QString::number(_rf, 'f', 0));
+    switch (id_device) {
+    case id_sdrplay:
+        break;
+    case id_airspy:
+        break;
+    case id_plutosdr:
+        break;
+    case id_hackrf:
+        ptr_hackrf->set_frequency(_rf);
+        break;
+    }
+    
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::level_gain(int _gain)
@@ -453,6 +465,7 @@ void main_window::level_gain(int _gain)
         str_gain = "gain :   ";
         break;
     case id_hackrf:
+        ptr_hackrf->set_gain(_gain);
         str_gain = "gain :   ";
         break;
     }
