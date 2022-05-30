@@ -16,10 +16,14 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+//#define USE_SDRPLAY
 
+#ifdef USE_SDRPLAY
 #include "rx_sdrplay.h"
+#endif
 #include "rx_airspy.h"
 #include "rx_plutosdr.h"
+#include "rx_hackrf.h"
 #include "plot.h"
 #include "DVB_T2/dvbt2_frame.h"
 
@@ -56,6 +60,9 @@ private slots:
     void open_plutosdr();
     void status_plutosdr(int _err);
 
+    void open_hackrf();
+    void status_hackrf(int _err);
+
     void radio_frequency(double _rf);
     void level_gain(int _gain);
     void bad_signal();
@@ -85,12 +92,16 @@ private:
     id_device_t id_device;
     dvbt2_frame* dvbt2;
     QThread* thread = nullptr;
+#ifdef USE_SDRPLAY
     rx_sdrplay* ptr_sdrplay;
+#endif
     rx_airspy* ptr_airspy;
     rx_plutosdr* ptr_plutosdr;
+    rx_hackrf* ptr_hackrf;
     int start_sdrplay();
     int start_airspy();
     int start_plutosdr();
+    int start_hackrf();
     void connect_info();
     void disconnect_info();
     QButtonGroup* button_group_p2_symbol;

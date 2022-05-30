@@ -143,7 +143,7 @@
               </size>
              </property>
              <property name="text">
-              <string>658000000</string>
+              <string>602000000</string>
              </property>
             </widget>
            </item>
@@ -919,7 +919,7 @@
      <x>0</x>
      <y>0</y>
      <width>785</width>
-     <height>28</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_file">
@@ -933,6 +933,7 @@
      <addaction name="action_sdrplay"/>
      <addaction name="action_airspy"/>
      <addaction name="action_plutosdr"/>
+     <addaction name="action_hackrf"/>
     </widget>
     <addaction name="menu_open"/>
     <addaction name="action_exit"/>
@@ -961,6 +962,11 @@
    </property>
    <property name="text">
     <string>PlutoSDR</string>
+   </property>
+  </action>
+  <action name="action_hackrf">
+   <property name="text">
+    <string>HackRF</string>
    </property>
   </action>
  </widget>

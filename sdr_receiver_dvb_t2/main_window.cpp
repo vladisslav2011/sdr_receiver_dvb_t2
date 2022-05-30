@@ -25,6 +25,7 @@ main_window::main_window(QWidget *parent)
     connect(ui->action_sdrplay, SIGNAL(triggered()), this, SLOT(open_sdrplay()));
     connect(ui->action_airspy, SIGNAL(triggered()), this, SLOT(open_airspy()));
     connect(ui->action_plutosdr, SIGNAL(triggered()), this, SLOT(open_plutosdr()));
+    connect(ui->action_hackrf, SIGNAL(triggered()), this, SLOT(open_hackrf()));
     connect(ui->action_exit, SIGNAL(triggered()), this, SLOT(close()));
 
     ui->tab_widget->setCurrentIndex(0);
@@ -82,6 +83,8 @@ void main_window::closeEvent(QCloseEvent *event)
     case id_plutosdr:
         if(thread == nullptr) ptr_plutosdr->reboot();
         break;
+    case id_hackrf:
+        break;
     }
     if(thread != nullptr) {
         emit stop_device();
@@ -97,6 +100,7 @@ void main_window::on_check_box_agc_stateChanged(int arg1)
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::open_sdrplay()
 {
+#ifdef USE_SDRPLAY
     int err;
     char* ser_no = nullptr;
     unsigned char hw_ver;
@@ -113,10 +117,12 @@ void main_window::open_sdrplay()
 
     id_device = id_sdrplay;
     ui->push_button_start->setEnabled(true);
+#endif
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 int main_window::start_sdrplay()
 {
+#ifdef USE_SDRPLAY
     double rf_fraquency;
     int gain_db;
     int err;
@@ -140,13 +146,16 @@ int main_window::start_sdrplay()
     connect(ptr_sdrplay, &rx_sdrplay::status, this, &main_window::status_sdrplay);
     connect(ptr_sdrplay, &rx_sdrplay::radio_frequency, this, &main_window::radio_frequency);
     connect(ptr_sdrplay, &rx_sdrplay::level_gain, this, &main_window::level_gain);
+#endif
     return 0;
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::status_sdrplay(int _err)
 {
+#ifdef USE_SDRPLAY
     ui->text_log->insertPlainText("Status SdrPlay:"  " "  +
                                   QString::fromStdString(ptr_sdrplay->error(_err)) + "\n");
+#endif
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::open_airspy()
@@ -260,6 +269,64 @@ void main_window::status_plutosdr(int _err)
     ui->text_log->insertPlainText("Status PlutoSDR:"  " "  +
                                   QString::fromStdString(ptr_plutosdr->error(_err)) + "\n");
 }
+
+//---------------------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------------------
+void main_window::open_hackrf()
+{
+    int err;
+    string ser_no;
+    string hw_ver;
+    ptr_hackrf = new rx_hackrf;
+    err = ptr_hackrf->get(ser_no, hw_ver);
+    ui->text_log->insertPlainText("Get HackRF:" +
+                                  QString::fromStdString(ptr_hackrf->error(err)) + "\n");
+    if(err < 0) return;
+
+    ui->label_name->setText("Name : HackRF");
+    ui->label_ser_no->setText("Serial No : " + QString::fromStdString(ser_no));
+    ui->label_hw_ver->setText("HW: " + QString::fromStdString(hw_ver));
+    ui->label_gain->setText("gain (0-73):");
+
+    id_device = id_hackrf;
+    ui->push_button_start->setEnabled(true);
+
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+int main_window::start_hackrf()
+{
+    uint64_t rf_fraquency_hz;
+    int gain;
+    int err;
+    rf_fraquency_hz = static_cast<uint64_t>(ui->line_edit_rf->text().toULong());
+    gain = static_cast<uint8_t>(ui->line_edit_gain->text().toUInt());
+    if(ui->check_box_agc->isChecked()) gain = -1;
+    err = ptr_hackrf->init(rf_fraquency_hz, gain);
+    ui->text_log->insertPlainText("Init HackRF:"  " "  +
+                                  QString::fromStdString(ptr_hackrf->error(err)) + "\n");
+    if(err !=0) return err;
+
+    thread = new QThread;
+    ptr_hackrf->moveToThread(thread);
+    connect(thread, SIGNAL(started()), ptr_hackrf, SLOT(start()));
+    connect(this,SIGNAL(stop_device()),ptr_hackrf,SLOT(stop()),Qt::DirectConnection);
+    connect(ptr_hackrf, SIGNAL(finished()), ptr_hackrf, SLOT(deleteLater()));
+    connect(ptr_hackrf, SIGNAL(finished()), thread, SLOT(quit()),Qt::DirectConnection);
+    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    thread->start(QThread::TimeCriticalPriority);
+
+    connect(ptr_hackrf, &rx_hackrf::status, this, &main_window::status_hackrf);
+    connect(ptr_hackrf, &rx_hackrf::radio_frequency, this, &main_window::radio_frequency);
+    connect(ptr_hackrf, &rx_hackrf::level_gain, this, &main_window::level_gain);
+
+    return 0;
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+void main_window::status_hackrf(int _err)
+{
+    ui->text_log->insertPlainText("Status HackRF:"  " "  +
+                                  QString::fromStdString(ptr_hackrf->error(_err)) + "\n");
+}
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::on_push_button_start_clicked()
 {
@@ -269,7 +336,9 @@ void main_window::on_push_button_start_clicked()
 
         if(start_sdrplay() != 0) return;
 
+#ifdef USE_SDRPLAY
         dvbt2 = ptr_sdrplay->frame;
+#endif
         break;
 
     case id_airspy:
@@ -284,6 +353,12 @@ void main_window::on_push_button_start_clicked()
         if(start_plutosdr() != 0) return;
 
         dvbt2 = ptr_plutosdr->frame;
+        break;
+    case id_hackrf:
+
+        if(start_hackrf() != 0) return;
+
+        dvbt2 = ptr_hackrf->frame;
         break;
     }
     for(int i = 1; i < ui->tab_widget->count(); ++i) ui->tab_widget->setTabEnabled(i, true);
@@ -375,6 +450,9 @@ void main_window::level_gain(int _gain)
         str_gain = "gain :   ";
         break;
     case id_plutosdr:
+        str_gain = "gain :   ";
+        break;
+    case id_hackrf:
         str_gain = "gain :   ";
         break;
     }

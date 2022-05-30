@@ -61,7 +61,7 @@ SOURCES += \
     qcustomplot.cpp \
     rx_airspy.cpp \
     rx_plutosdr.cpp \
-    rx_sdrplay.cpp
+    rx_hackrf.cpp
 
 HEADERS += \
     DSP/buffers.hh \
@@ -107,13 +107,14 @@ HEADERS += \
     qcustomplot.h \
     rx_airspy.h \
     rx_plutosdr.h \
-    rx_sdrplay.h
+    rx_hackrf.h
 
 FORMS += \
     main_window.ui
 
 unix|win32: LIBS += -lfftw3f
-unix|win32: LIBS += -lmirsdrapi-rsp
+# unix|win32: LIBS += -lmirsdrapi-rsp
+unix|win32: LIBS += -lhackrf
 unix|win32: LIBS += -lusb-1.0
 
 # Default rules for deployment.

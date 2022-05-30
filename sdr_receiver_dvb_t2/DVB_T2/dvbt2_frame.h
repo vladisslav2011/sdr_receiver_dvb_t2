@@ -37,6 +37,7 @@ enum id_device_t{
     id_sdrplay = 0,
     id_airspy,
     id_plutosdr,
+    id_hackrf,
 };
 
 class dvbt2_frame : public QObject
