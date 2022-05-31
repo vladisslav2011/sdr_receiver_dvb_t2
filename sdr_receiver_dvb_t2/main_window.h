@@ -62,6 +62,7 @@ private slots:
 
     void open_hackrf();
     void status_hackrf(int _err);
+    void finished_hackrf();
 
     void radio_frequency(double _rf);
     void level_gain(int _gain);

@@ -19,15 +19,28 @@
 #include <QMutex>
 
 //----------------------------------------------------------------------------------------------------------------------------
-rx_hackrf::rx_hackrf(QObject *parent) : QObject(parent)
+rx_hackrf::rx_hackrf(QObject *parent) : QObject(parent),
+i_buffer_a(nullptr),
+q_buffer_a(nullptr),
+i_buffer_b(nullptr),
+q_buffer_b(nullptr)
 {
-  hackrf_init(); /* call only once before the first open */
+    hackrf_init(); /* call only once before the first open */
+    fprintf(stderr,"rx_hackrf::rx_hackrf\n");
 
 }
 //----------------------------------------------------------------------------------------------------------------------------
 rx_hackrf::~rx_hackrf()
 {
-  hackrf_exit(); /* call only once after last close */
+    if(i_buffer_a)
+    {
+        delete i_buffer_a;
+        delete q_buffer_a;
+        delete i_buffer_b;
+        delete q_buffer_b;
+    }
+    hackrf_exit(); /* call only once after last close */
+    fprintf(stderr,"rx_hackrf::~rx_hackrf\n");
 }
 //----------------------------------------------------------------------------------------------------------------------------
 string rx_hackrf::error (int err)
@@ -109,6 +122,7 @@ int rx_hackrf::get(string &_ser_no, string &_hw_ver)
 int rx_hackrf::init(double _rf_frequency, int _gain_db)
 {
     int ret = 0;
+    fprintf(stderr,"hackrf init\n");
     rf_frequency = _rf_frequency;
     gain_db = _gain_db;
     if(gain_db < 0) {

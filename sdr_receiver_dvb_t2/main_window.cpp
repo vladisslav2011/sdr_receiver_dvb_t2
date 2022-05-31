@@ -18,7 +18,13 @@
 //---------------------------------------------------------------------------------------------------------------------------------
 main_window::main_window(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::main_window)
+    , ui(new Ui::main_window),
+    ptr_plutosdr(nullptr),
+#ifdef USE_SDRPLAY
+    ptr_sdrplay(nullptr),
+#endif
+    ptr_airspy(nullptr),
+    ptr_hackrf(nullptr)
 {
     ui->setupUi(this);
 
@@ -277,6 +283,8 @@ void main_window::open_hackrf()
     int err;
     string ser_no;
     string hw_ver;
+    if(ptr_hackrf)
+        delete ptr_hackrf;
     ptr_hackrf = new rx_hackrf;
     err = ptr_hackrf->get(ser_no, hw_ver);
     ui->text_log->insertPlainText("Get HackRF:" +
@@ -313,6 +321,7 @@ int main_window::start_hackrf()
     connect(ptr_hackrf, SIGNAL(finished()), ptr_hackrf, SLOT(deleteLater()));
     connect(ptr_hackrf, SIGNAL(finished()), thread, SLOT(quit()),Qt::DirectConnection);
     connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    connect(thread, SIGNAL(finished()), this, SLOT(finished_hackrf()));
     thread->start(QThread::TimeCriticalPriority);
 
     connect(ptr_hackrf, &rx_hackrf::status, this, &main_window::status_hackrf);
@@ -326,6 +335,12 @@ void main_window::status_hackrf(int _err)
 {
     ui->text_log->insertPlainText("Status HackRF:"  " "  +
                                   QString::fromStdString(ptr_hackrf->error(_err)) + "\n");
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+void main_window::finished_hackrf()
+{
+    ptr_hackrf = nullptr;
+    thread = nullptr;
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::on_push_button_start_clicked()
