@@ -64,8 +64,8 @@ dvbt2_frame::dvbt2_frame(QWaitCondition *_signal_in, QMutex *_mutex_in, id_devic
     case id_hackrf:
         convert_input = 1;
         short_to_float = 1.0f / (1 << 7);
-        level_max = 0.07f;
-        level_min = 0.03f;
+        level_max = 0.05f;
+        level_min = 0.02f;
         break;
     }
 

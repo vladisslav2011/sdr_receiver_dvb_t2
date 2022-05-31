@@ -115,7 +115,7 @@ int rx_hackrf::init(double _rf_frequency, int _gain_db)
         gain_db = 78;
         agc = true;
     }
-    sample_rate = 8000000.0f; // max for 10bit (10000000.0f for 8bit)
+    sample_rate = 10000000.0f; // max for 10bit (10000000.0f for 8bit)
     ret = hackrf_open( &_dev );
     hackrf_set_sample_rate( _dev, sample_rate );
     hackrf_set_freq( _dev, uint64_t(rf_frequency) );
