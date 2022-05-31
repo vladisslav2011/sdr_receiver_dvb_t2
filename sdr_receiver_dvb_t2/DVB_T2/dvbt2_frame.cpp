@@ -317,7 +317,6 @@ void dvbt2_frame::symbol_acquisition(int _len_in, complex* _in, bool& _frequency
             if(deint_start) {
                 mutex_out->lock();
                 emit data(dvbt2.c_data, deinterleaved_cell);
-                signal_out->wait(mutex_out);
                 mutex_out->unlock();
             }
             ++idx_symbol;
@@ -331,7 +330,6 @@ void dvbt2_frame::symbol_acquisition(int _len_in, complex* _in, bool& _frequency
             if(deint_start) {
                 mutex_out->lock();
                 emit data(dvbt2.n_fc, deinterleaved_cell);
-                signal_out->wait(mutex_out);
                 mutex_out->unlock();
             }
             next_symbol_type = SYMBOL_TYPE_P1;
@@ -347,7 +345,6 @@ void dvbt2_frame::symbol_acquisition(int _len_in, complex* _in, bool& _frequency
                         if(deint_start) {
                             mutex_out->lock();
                             emit l1_dyn_init(l1_post, dvbt2.c_p2, deinterleaved_cell);
-                            signal_out->wait(mutex_out);
                             mutex_out->unlock();
                         }
                         else {
@@ -355,7 +352,6 @@ void dvbt2_frame::symbol_acquisition(int _len_in, complex* _in, bool& _frequency
                             deint_start = true;
                             mutex_out->lock();
                             emit l1_dyn_init(l1_post, dvbt2.c_p2, deinterleaved_cell);
-                            signal_out->wait(mutex_out);
                             mutex_out->unlock();
                             emit amount_plp(l1_post.num_plp);
                         }

@@ -343,8 +343,6 @@ void time_deinterleaver::execute(int _len_in, complex* _ofdm_cell)
                 }
                 mutex_out->lock();
                 emit ti_block(ti_block_size, time_deint_cell, plp_id, l1_post);
-                signal_out->wait(mutex_out);
-                mutex_out->unlock();
                 if(swap_buffers) {
                     swap_buffers = false;
                     time_deint_cell = buffer_b;
@@ -353,6 +351,7 @@ void time_deinterleaver::execute(int _len_in, complex* _ofdm_cell)
                     swap_buffers = true;
                     time_deint_cell = buffer_a;
                 }
+                mutex_out->unlock();
                 if(++idx_time_il == l1_post.plp[plp_id].time_il_length) {
                     idx_time_il = 0;
                     if(idx_cell == slice_end[plp_id]) {
