@@ -44,6 +44,7 @@ signals:
     void level_gain(int _gain);
     void stop_demodulator();
     void finished();
+    void buffered(int nbuffers, int totalbuffers);
 
 public slots:
     void start();

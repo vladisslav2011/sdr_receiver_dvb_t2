@@ -327,6 +327,7 @@ int main_window::start_hackrf()
     connect(ptr_hackrf, &rx_hackrf::status, this, &main_window::status_hackrf);
     connect(ptr_hackrf, &rx_hackrf::radio_frequency, this, &main_window::radio_frequency);
     connect(ptr_hackrf, &rx_hackrf::level_gain, this, &main_window::level_gain);
+    connect(ptr_hackrf, &rx_hackrf::buffered, this, &main_window::update_buffered);
 
     return 0;
 }
@@ -341,6 +342,11 @@ void main_window::finished_hackrf()
 {
     ptr_hackrf = nullptr;
     thread = nullptr;
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+void main_window::update_buffered(int nbuffers, int totalbuffers)
+{
+    ui->label_info_buffered->setText("buffered  :" + QString::number(nbuffers) + "/" + QString::number(totalbuffers));
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::on_push_button_start_clicked()

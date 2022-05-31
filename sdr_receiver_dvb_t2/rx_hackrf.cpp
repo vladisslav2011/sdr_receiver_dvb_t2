@@ -244,7 +244,7 @@ void rx_hackrf::rx_execute(void *in_ptr, int nsamples)
     ptr_q_buffer += nsamples;
 
     if(mutex_out->try_lock()) {
-        fprintf(stderr,"blocks=%d\n",blocks);
+        emit buffered(blocks, max_blocks);
         frame->get_signal_estimate(change_frequency, frequency_offset,
                                    change_gain, gain_offset);
         if(!frequency_changed) {
