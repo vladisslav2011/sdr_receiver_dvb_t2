@@ -937,10 +937,8 @@
      <property name="title">
       <string>Open</string>
      </property>
-     <addaction name="action_sdrplay"/>
      <addaction name="action_airspy"/>
      <addaction name="action_plutosdr"/>
-     <addaction name="action_hackrf"/>
     </widget>
     <addaction name="menu_open"/>
     <addaction name="action_exit"/>
@@ -951,11 +949,6 @@
   <action name="action_exit">
    <property name="text">
     <string>Exit</string>
-   </property>
-  </action>
-  <action name="action_sdrplay">
-   <property name="text">
-    <string>SdrPlay</string>
    </property>
   </action>
   <action name="action_airspy">
@@ -969,11 +962,6 @@
    </property>
    <property name="text">
     <string>PlutoSDR</string>
-   </property>
-  </action>
-  <action name="action_hackrf">
-   <property name="text">
-    <string>HackRF</string>
    </property>
   </action>
  </widget>

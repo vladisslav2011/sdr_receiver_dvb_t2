@@ -14,24 +14,36 @@
 */
 #include "main_window.h"
 #include "ui_main_window.h"
+#include <QAction>
 
 //---------------------------------------------------------------------------------------------------------------------------------
 main_window::main_window(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::main_window),
-    ptr_plutosdr(nullptr),
+    ptr_airspy(nullptr),
 #ifdef USE_SDRPLAY
     ptr_sdrplay(nullptr),
 #endif
-    ptr_airspy(nullptr),
-    ptr_hackrf(nullptr)
+#ifdef USE_HACKRF
+    ptr_hackrf(nullptr),
+#endif
+    ptr_plutosdr(nullptr)
 {
     ui->setupUi(this);
 
+#ifdef USE_SDRPLAY
     connect(ui->action_sdrplay, SIGNAL(triggered()), this, SLOT(open_sdrplay()));
+    QAction * action_sdrplay = new QAction("SDRPlay", this);
+    ui->menu_open->addAction(action_sdrplay);
+    connect(action_sdrplay, SIGNAL(triggered()), this, SLOT(open_sdrplay()));
+#endif
     connect(ui->action_airspy, SIGNAL(triggered()), this, SLOT(open_airspy()));
     connect(ui->action_plutosdr, SIGNAL(triggered()), this, SLOT(open_plutosdr()));
-    connect(ui->action_hackrf, SIGNAL(triggered()), this, SLOT(open_hackrf()));
+#ifdef USE_HACKRF
+    QAction * action_hackrf = new QAction("HackRF", this);
+    ui->menu_open->addAction(action_hackrf);
+    connect(action_hackrf, SIGNAL(triggered()), this, SLOT(open_hackrf()));
+#endif
     connect(ui->action_exit, SIGNAL(triggered()), this, SLOT(close()));
 
     ui->tab_widget->setCurrentIndex(0);
@@ -104,9 +116,9 @@ void main_window::on_check_box_agc_stateChanged(int arg1)
     else ui->line_edit_gain->setEnabled(true);
 }
 //---------------------------------------------------------------------------------------------------------------------------------
+#ifdef USE_SDRPLAY
 void main_window::open_sdrplay()
 {
-#ifdef USE_SDRPLAY
     int err;
     char* ser_no = nullptr;
     unsigned char hw_ver;
@@ -123,12 +135,10 @@ void main_window::open_sdrplay()
 
     id_device = id_sdrplay;
     ui->push_button_start->setEnabled(true);
-#endif
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 int main_window::start_sdrplay()
 {
-#ifdef USE_SDRPLAY
     double rf_fraquency;
     int gain_db;
     int err;
@@ -152,17 +162,15 @@ int main_window::start_sdrplay()
     connect(ptr_sdrplay, &rx_sdrplay::status, this, &main_window::status_sdrplay);
     connect(ptr_sdrplay, &rx_sdrplay::radio_frequency, this, &main_window::radio_frequency);
     connect(ptr_sdrplay, &rx_sdrplay::level_gain, this, &main_window::level_gain);
-#endif
     return 0;
 }
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::status_sdrplay(int _err)
 {
-#ifdef USE_SDRPLAY
     ui->text_log->insertPlainText("Status SdrPlay:"  " "  +
                                   QString::fromStdString(ptr_sdrplay->error(_err)) + "\n");
-#endif
 }
+#endif
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::open_airspy()
 {
@@ -277,7 +285,7 @@ void main_window::status_plutosdr(int _err)
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------
-//---------------------------------------------------------------------------------------------------------------------------------
+#ifdef USE_HACKRF
 void main_window::open_hackrf()
 {
     int err;
@@ -343,6 +351,7 @@ void main_window::finished_hackrf()
     ptr_hackrf = nullptr;
     thread = nullptr;
 }
+#endif
 //---------------------------------------------------------------------------------------------------------------------------------
 void main_window::update_buffered(int nbuffers, int totalbuffers)
 {
@@ -355,9 +364,9 @@ void main_window::on_push_button_start_clicked()
     switch (id_device) {
     case id_sdrplay:
 
+#ifdef USE_SDRPLAY
         if(start_sdrplay() != 0) return;
 
-#ifdef USE_SDRPLAY
         dvbt2 = ptr_sdrplay->frame;
 #endif
         break;
@@ -377,9 +386,11 @@ void main_window::on_push_button_start_clicked()
         break;
     case id_hackrf:
 
+#ifdef USE_HACKRF
         if(start_hackrf() != 0) return;
 
         dvbt2 = ptr_hackrf->frame;
+#endif
         break;
     }
     for(int i = 1; i < ui->tab_widget->count(); ++i) ui->tab_widget->setTabEnabled(i, true);
@@ -466,7 +477,9 @@ void main_window::radio_frequency(double _rf)
     case id_plutosdr:
         break;
     case id_hackrf:
+#ifdef USE_HACKRF
         ptr_hackrf->set_frequency(_rf);
+#endif
         break;
     }
     
@@ -486,8 +499,10 @@ void main_window::level_gain(int _gain)
         str_gain = "gain :   ";
         break;
     case id_hackrf:
+#ifdef USE_HACKRF
         ptr_hackrf->set_gain(_gain);
         str_gain = "gain :   ";
+#endif
         break;
     }
     ui->label_info_gain->setText(str_gain + QString::number(_gain));

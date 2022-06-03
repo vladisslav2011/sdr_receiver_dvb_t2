@@ -23,7 +23,9 @@
 #endif
 #include "rx_airspy.h"
 #include "rx_plutosdr.h"
+#ifdef USE_HACKRF
 #include "rx_hackrf.h"
+#endif
 #include "plot.h"
 #include "DVB_T2/dvbt2_frame.h"
 
@@ -51,18 +53,21 @@ signals:
     void stop_device();
 
 private slots:
+#ifdef USE_SDRPLAY
     void open_sdrplay();
     void status_sdrplay(int _err);
-
+#endif
     void open_airspy();
     void status_airspy(int _err);
 
     void open_plutosdr();
     void status_plutosdr(int _err);
 
+#ifdef USE_HACKRF
     void open_hackrf();
     void status_hackrf(int _err);
     void finished_hackrf();
+#endif
 
     void update_buffered(int nbuffers, int totalbuffers);
 
@@ -95,12 +100,14 @@ private:
     id_device_t id_device;
     dvbt2_frame* dvbt2;
     QThread* thread = nullptr;
+    rx_airspy* ptr_airspy;
 #ifdef USE_SDRPLAY
     rx_sdrplay* ptr_sdrplay;
 #endif
-    rx_airspy* ptr_airspy;
-    rx_plutosdr* ptr_plutosdr;
+#ifdef USE_HACKRF
     rx_hackrf* ptr_hackrf;
+#endif
+    rx_plutosdr* ptr_plutosdr;
     int start_sdrplay();
     int start_airspy();
     int start_plutosdr();

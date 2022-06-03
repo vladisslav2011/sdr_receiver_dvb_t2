@@ -60,8 +60,10 @@ SOURCES += \
     plot.cpp \
     qcustomplot.cpp \
     rx_airspy.cpp \
-    rx_plutosdr.cpp \
-    rx_hackrf.cpp
+    rx_plutosdr.cpp
+
+equals(hackrf,1): SOURCES += rx_hackrf.cpp
+equals(sdrplay,1): SOURCES += rx_sdrplay.cpp
 
 HEADERS += \
     DSP/buffers.hh \
@@ -106,15 +108,19 @@ HEADERS += \
     plot.h \
     qcustomplot.h \
     rx_airspy.h \
-    rx_plutosdr.h \
-    rx_hackrf.h
+    rx_plutosdr.h
+
+equals(hackrf,1): HEADERS += rx_hackrf.h
+equals(sdrplay,1): SOURCES += rx_sdrplay.h
 
 FORMS += \
     main_window.ui
 
 unix|win32: LIBS += -lfftw3f
-# unix|win32: LIBS += -lmirsdrapi-rsp
-unix|win32: LIBS += -lhackrf
+equals(sdrplay,1): LIBS += -lmirsdrapi-rsp
+equals(sdrplay,1): QMAKE_CXXFLAGS += -DUSE_SDRPLAY
+equals(hackrf,1): LIBS += -lhackrf
+equals(hackrf,1): QMAKE_CXXFLAGS += -DUSE_HACKRF
 unix|win32: LIBS += -lusb-1.0
 
 # Default rules for deployment.

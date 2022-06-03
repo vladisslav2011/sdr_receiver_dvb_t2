@@ -113,8 +113,9 @@ int rx_hackrf::get(string &_ser_no, string &_hw_ver)
 
     ret = hackrf_close(dev);
   }
-
 #endif
+  if(devices.size() == 0)
+    return HACKRF_ERROR_NOT_FOUND;
   _ser_no = devices[0];
   return 0;
 }
