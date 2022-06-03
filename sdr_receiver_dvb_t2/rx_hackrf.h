@@ -12,8 +12,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#ifndef RX_SDRPLAY_H
-#define RX_SDRPLAY_H
+#ifndef RX_HACKRF_H
+#define RX_HACKRF_H
 
 #include <QObject>
 #include <QTime>
@@ -93,4 +93,4 @@ private:
     bool done = true;
 };
 
-#endif // RX_SDRPLAY_H
+#endif // RX_HACKRF_H
