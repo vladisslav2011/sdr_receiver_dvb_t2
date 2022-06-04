@@ -27,6 +27,9 @@ main_window::main_window(QWidget *parent)
 #ifdef USE_HACKRF
     ptr_hackrf(nullptr),
 #endif
+#ifdef USE_MIRI
+    ptr_miri(nullptr),
+#endif
     ptr_plutosdr(nullptr)
 {
     ui->setupUi(this);
@@ -43,6 +46,11 @@ main_window::main_window(QWidget *parent)
     QAction * action_hackrf = new QAction("HackRF", this);
     ui->menu_open->addAction(action_hackrf);
     connect(action_hackrf, SIGNAL(triggered()), this, SLOT(open_hackrf()));
+#endif
+#ifdef USE_MIRI
+    QAction * action_miri = new QAction("Miri SDR", this);
+    ui->menu_open->addAction(action_miri);
+    connect(action_miri, SIGNAL(triggered()), this, SLOT(open_miri()));
 #endif
     connect(ui->action_exit, SIGNAL(triggered()), this, SLOT(close()));
 
@@ -102,6 +110,8 @@ void main_window::closeEvent(QCloseEvent *event)
         if(thread == nullptr) ptr_plutosdr->reboot();
         break;
     case id_hackrf:
+        break;
+    case id_miri:
         break;
     }
     if(thread != nullptr) {
@@ -353,6 +363,74 @@ void main_window::finished_hackrf()
 }
 #endif
 //---------------------------------------------------------------------------------------------------------------------------------
+#ifdef USE_MIRI
+void main_window::open_miri()
+{
+    int err;
+    string ser_no;
+    string hw_ver;
+    if(ptr_miri)
+        delete ptr_miri;
+    ptr_miri = new rx_miri;
+    err = ptr_miri->get(ser_no, hw_ver);
+    ui->text_log->insertPlainText("Get Miri:" +
+                                  QString::fromStdString(ptr_miri->error(err)) + "\n");
+    if(err < 0) return;
+
+    ui->label_name->setText("Name : Miri SDR");
+    ui->label_ser_no->setText("Serial No : " + QString::fromStdString(ser_no));
+    ui->label_hw_ver->setText("HW: " + QString::fromStdString(hw_ver));
+    ui->label_gain->setText("gain (0-73):");
+
+    id_device = id_miri;
+    ui->push_button_start->setEnabled(true);
+
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+int main_window::start_miri()
+{
+    uint64_t rf_fraquency_hz;
+    int gain;
+    int err;
+    rf_fraquency_hz = static_cast<uint64_t>(ui->line_edit_rf->text().toULong());
+    gain = static_cast<uint8_t>(ui->line_edit_gain->text().toUInt());
+    if(ui->check_box_agc->isChecked()) gain = -1;
+    err = ptr_miri->init(rf_fraquency_hz, gain);
+    ui->text_log->insertPlainText("Init Miri SDR:"  " "  +
+                                  QString::fromStdString(ptr_miri->error(err)) + "\n");
+    if(err !=0) return err;
+
+    thread = new QThread;
+    ptr_miri->moveToThread(thread);
+    connect(thread, SIGNAL(started()), ptr_miri, SLOT(start()));
+    connect(this,SIGNAL(stop_device()),ptr_miri,SLOT(stop()),Qt::DirectConnection);
+    connect(ptr_miri, SIGNAL(finished()), ptr_miri, SLOT(deleteLater()));
+    connect(ptr_miri, SIGNAL(finished()), thread, SLOT(quit()),Qt::DirectConnection);
+    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    connect(thread, SIGNAL(finished()), this, SLOT(finished_miri()));
+    thread->start(QThread::TimeCriticalPriority);
+
+    connect(ptr_miri, &rx_miri::status, this, &main_window::status_miri);
+    connect(ptr_miri, &rx_miri::radio_frequency, this, &main_window::radio_frequency);
+    connect(ptr_miri, &rx_miri::level_gain, this, &main_window::level_gain);
+    connect(ptr_miri, &rx_miri::buffered, this, &main_window::update_buffered);
+
+    return 0;
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+void main_window::status_miri(int _err)
+{
+    ui->text_log->insertPlainText("Status Miri SDR:"  " "  +
+                                  QString::fromStdString(ptr_miri->error(_err)) + "\n");
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+void main_window::finished_miri()
+{
+    ptr_miri = nullptr;
+    thread = nullptr;
+}
+#endif
+//---------------------------------------------------------------------------------------------------------------------------------
 void main_window::update_buffered(int nbuffers, int totalbuffers)
 {
     ui->label_info_buffered->setText("buffered  :" + QString::number(nbuffers) + "/" + QString::number(totalbuffers));
@@ -384,12 +462,19 @@ void main_window::on_push_button_start_clicked()
 
         dvbt2 = ptr_plutosdr->frame;
         break;
-    case id_hackrf:
 
+    case id_hackrf:
 #ifdef USE_HACKRF
         if(start_hackrf() != 0) return;
 
         dvbt2 = ptr_hackrf->frame;
+#endif
+        break;
+    case id_miri:
+#ifdef USE_MIRI
+        if(start_miri() != 0) return;
+
+        dvbt2 = ptr_miri->frame;
 #endif
         break;
     }
@@ -481,6 +566,11 @@ void main_window::radio_frequency(double _rf)
         ptr_hackrf->set_frequency(_rf);
 #endif
         break;
+    case id_miri:
+#ifdef USE_MIRI
+        ptr_miri->set_frequency(_rf);
+#endif
+        break;
     }
     
 }
@@ -501,6 +591,12 @@ void main_window::level_gain(int _gain)
     case id_hackrf:
 #ifdef USE_HACKRF
         ptr_hackrf->set_gain(_gain);
+        str_gain = "gain :   ";
+#endif
+        break;
+    case id_miri:
+#ifdef USE_MIRI
+        ptr_miri->set_gain(_gain);
         str_gain = "gain :   ";
 #endif
         break;

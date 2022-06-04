@@ -26,6 +26,9 @@
 #ifdef USE_HACKRF
 #include "rx_hackrf.h"
 #endif
+#ifdef USE_MIRI
+#include "rx_miri.h"
+#endif
 #include "plot.h"
 #include "DVB_T2/dvbt2_frame.h"
 
@@ -69,6 +72,12 @@ private slots:
     void finished_hackrf();
 #endif
 
+#ifdef USE_MIRI
+    void open_miri();
+    void status_miri(int _err);
+    void finished_miri();
+#endif
+
     void update_buffered(int nbuffers, int totalbuffers);
 
     void radio_frequency(double _rf);
@@ -107,11 +116,21 @@ private:
 #ifdef USE_HACKRF
     rx_hackrf* ptr_hackrf;
 #endif
+#ifdef USE_MIRI
+    rx_miri* ptr_miri;
+#endif
     rx_plutosdr* ptr_plutosdr;
+#ifdef USE_SDRPLAY
     int start_sdrplay();
+#endif
     int start_airspy();
     int start_plutosdr();
+#ifdef USE_HACKRF
     int start_hackrf();
+#endif
+#ifdef USE_MIRI
+    int start_miri();
+#endif
     void connect_info();
     void disconnect_info();
     QButtonGroup* button_group_p2_symbol;
