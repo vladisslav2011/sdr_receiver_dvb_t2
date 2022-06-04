@@ -111,7 +111,7 @@ HEADERS += \
     rx_airspy.h \
     rx_plutosdr.h
 
-isEmpty(HACKRF_INCLUDE_DIR): QMAKE_CXXFLAGS += -I$${HACKRF_INCLUDE_DIR}
+!isEmpty(HACKRF_INCLUDE_DIR): QMAKE_CXXFLAGS += -I$${HACKRF_INCLUDE_DIR}
 equals(hackrf,1): HEADERS += rx_hackrf.h
 !isEmpty(SDRPLAY_INCLUDE_DIR): QMAKE_CXXFLAGS += -I$${SDRPLAY_INCLUDE_DIR}
 equals(sdrplay,1): HEADERS += rx_sdrplay.h

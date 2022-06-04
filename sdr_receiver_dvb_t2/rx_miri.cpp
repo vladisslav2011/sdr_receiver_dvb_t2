@@ -17,6 +17,7 @@
 #include <QThread>
 #include <QWaitCondition>
 #include <QMutex>
+#include <unistd.h>
 
 //----------------------------------------------------------------------------------------------------------------------------
 rx_miri::rx_miri(QObject *parent) : QObject(parent),
@@ -78,15 +79,15 @@ int rx_miri::init(double _rf_frequency, int _gain_db)
     rf_frequency = _rf_frequency;
     gain_db = _gain_db;
     if(gain_db < 0) {
-        gain_db = 78;
+        gain_db = 0;
         agc = true;
     }
-    sample_rate = 9000000.0f; // max for 10bit (10000000.0f for 8bit)
+    sample_rate = 10000000.0f; // max for 10bit (10000000.0f for 8bit)
     ret = mirisdr_open( &_dev, 0 );
     mirisdr_set_sample_rate( _dev, sample_rate );
     mirisdr_set_center_freq( _dev, uint32_t(rf_frequency) );
     gain_db = _gain_db;
-    ret = mirisdr_set_bandwidth( _dev, 8000000 );
+    //ret = mirisdr_set_bandwidth( _dev, 8000000 );
     set_gain(gain_db);
 
     if(ret != 0) return ret;
@@ -227,19 +228,19 @@ void rx_miri::start()
     ptr_q_buffer = q_buffer_a;
     emit radio_frequency(rf_frequency);
     emit level_gain(gain_db);
-    err = mirisdr_reset_buffer(_dev);
-    err = mirisdr_read_async( _dev, callback, (void *)this, 16, len_out_device );
-    len_buffer = 0;
     fprintf(stderr, "miri start rx %d\n", err);
+    err = mirisdr_reset_buffer(_dev);
+    err = mirisdr_read_async( _dev, callback, (void *)this, 64, len_out_device );
+    len_buffer = 0;
+    mirisdr_close(_dev);
+    emit stop_demodulator();
+    if(thread->isRunning()) thread->wait(1000);
+    emit finished();
 }
 //----------------------------------------------------------------------------------------------------------------------------
 void rx_miri::stop()
 {
     done = false;
     mirisdr_cancel_async( _dev );
-    mirisdr_close(_dev);
-    emit stop_demodulator();
-    if(thread->isRunning()) thread->wait(1000);
-    emit finished();
 }
 //----------------------------------------------------------------------------------------------------------------------------

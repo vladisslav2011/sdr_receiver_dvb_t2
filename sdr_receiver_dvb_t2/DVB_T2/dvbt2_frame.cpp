@@ -67,6 +67,12 @@ dvbt2_frame::dvbt2_frame(QWaitCondition *_signal_in, QMutex *_mutex_in, id_devic
         level_max = 0.05f;
         level_min = 0.02f;
         break;
+    case id_miri:
+        convert_input = 1;
+        short_to_float = 1.0f / (1 << 15);
+        level_max = 0.04f;
+        level_min = 0.02f;
+        break;
     }
 
     //preamble p1 symbol
