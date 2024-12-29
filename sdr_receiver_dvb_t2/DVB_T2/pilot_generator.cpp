@@ -36,9 +36,6 @@ pilot_generator::~pilot_generator()
         delete [] data_carrier_map;
     }
 
-    if(!prbs) delete [] prbs;
-    if(!p2_carrier_map)delete [] p2_carrier_map;
-    if(!data_carrier_map_temp)delete [] data_carrier_map_temp;
     if(!fc_carrier_map){
         delete [] fc_carrier_map;
         delete [] fc_pilot_refer;
@@ -47,9 +44,8 @@ pilot_generator::~pilot_generator()
 //----------------------------------------------------------------------------------------------------------------------------
 void pilot_generator::init_prbs(dvbt2_parameters _dvbt2)
 {
-    if(prbs != nullptr) delete [] prbs;
     int len = _dvbt2.k_total + _dvbt2.k_offset;
-    prbs = new int[len];
+    prbs.resize(len);
     int sr = 0x7ff;
     int j = 0;
     for (int i = 0; i < len; ++i) {
@@ -70,8 +66,7 @@ void pilot_generator::p2_generator(dvbt2_parameters _dvbt2)
 {
     dvbt2 = _dvbt2;
     init_prbs(dvbt2);
-    if(p2_carrier_map !=nullptr) delete [] p2_carrier_map;
-    p2_carrier_map = new int[dvbt2.k_total];
+    p2_carrier_map.resize(dvbt2.k_total);
     if(p2_pilot_refer != nullptr) {
         for(int i = 0; i < dvbt2.n_p2; ++i) delete [] p2_pilot_refer[i];
         delete [] p2_pilot_refer;
@@ -94,10 +89,7 @@ void pilot_generator::data_generator(dvbt2_parameters _dvbt2)
     }
     data_carrier_map = new int *[n_data];
 
-    if(data_carrier_map_temp != nullptr) {
-        delete [] data_carrier_map_temp;
-    }
-    data_carrier_map_temp = new int[dvbt2.k_total];
+    data_carrier_map_temp.resize(dvbt2.k_total);
 
     for(int i = 0; i < n_data; ++i) data_carrier_map[i] = new int[dvbt2.k_total];
     if(data_pilot_refer != nullptr) {

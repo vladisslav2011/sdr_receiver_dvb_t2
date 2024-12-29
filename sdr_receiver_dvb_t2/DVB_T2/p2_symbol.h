@@ -63,7 +63,7 @@ private:
     float amp_p2;
     int n_p2;
     int c_p2;
-    int* p2_carrier_map;
+    std::vector<int> p2_carrier_map{};
     int k_total;
     int half_total;
     int left_nulls;

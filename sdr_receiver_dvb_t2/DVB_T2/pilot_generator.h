@@ -17,6 +17,7 @@
 #define PILOT_GENERATOR_H
 
 #include <QObject>
+#include <vector>
 
 #include "dvbt2_definition.h"
 
@@ -26,7 +27,7 @@ public:
     pilot_generator();
     ~pilot_generator();
 
-    int* p2_carrier_map = nullptr;
+    std::vector<int> p2_carrier_map{};
     int** data_carrier_map = nullptr;
     int* fc_carrier_map = nullptr;
     float** p2_pilot_refer = nullptr;
@@ -37,7 +38,7 @@ public:
 
 private:
     dvbt2_parameters dvbt2;
-    int* data_carrier_map_temp = nullptr;
+    std::vector<int> data_carrier_map_temp{};
     int n_data;
     float p2_bpsk[2];
     float sp_bpsk[2];
@@ -47,7 +48,7 @@ private:
     float cp_bpsk_inverted[2];
     int dx;
     int dy;
-    int* prbs = nullptr;
+    std::vector<int> prbs{};
     int pn_sequence[CHIPS];
     void init_prbs(dvbt2_parameters _dvbt2);
     void p2_carrier_mapping();
