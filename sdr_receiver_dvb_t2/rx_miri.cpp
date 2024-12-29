@@ -75,6 +75,8 @@ int rx_miri::get(string &_ser_no, string &_hw_ver)
 int rx_miri::init(double _rf_frequency, int _gain_db)
 {
     int ret = 0;
+    static char fmt[] = "336_S16\x00";
+    //static char fmt[] = "504_S16\x00";
     fprintf(stderr,"miri init\n");
     rf_frequency = _rf_frequency;
     gain_db = _gain_db;
@@ -84,10 +86,12 @@ int rx_miri::init(double _rf_frequency, int _gain_db)
     }
     sample_rate = 10000000.0f; // max for 10bit (10000000.0f for 8bit)
     ret = mirisdr_open( &_dev, 0 );
+    mirisdr_set_sample_format( _dev, fmt);
     mirisdr_set_sample_rate( _dev, sample_rate );
     mirisdr_set_center_freq( _dev, uint32_t(rf_frequency) );
     gain_db = _gain_db;
-    //ret = mirisdr_set_bandwidth( _dev, 8000000 );
+    ret = mirisdr_set_bandwidth( _dev, 12000000 );
+    //mirisdr_set_bias( _dev, 1);
     set_gain(gain_db);
 
     if(ret != 0) return ret;
@@ -140,7 +144,7 @@ void rx_miri::callback(unsigned char *buf, uint32_t len, void *context)
 //----------------------------------------------------------------------------------------------------------------------------
 void rx_miri::rx_execute(void *in_ptr, int nsamples)
 {
-    int err;
+    int err=0;
     float mag=0;
     int16_t * ptr = (int16_t*)in_ptr;
     for(int i = 0; i < nsamples; ++i) {
@@ -165,9 +169,9 @@ void rx_miri::rx_execute(void *in_ptr, int nsamples)
         }
         if(change_frequency) {
             float correct = -frequency_offset / static_cast<float>(rf_frequency);
-            frame->correct_resample(correct);
+            //frame->correct_resample(correct);
             rf_frequency += static_cast<int64_t>(frequency_offset);
-            //err = miri_set_freq( _dev, uint64_t(rf_frequency));
+            //err = mirisdr_set_center_freq( _dev, uint32_t(rf_frequency) );
             if(err < 0) emit status(err);
             frequency_changed = false;
             emit radio_frequency(rf_frequency);
@@ -223,14 +227,14 @@ void rx_miri::rx_execute(void *in_ptr, int nsamples)
 //----------------------------------------------------------------------------------------------------------------------------
 void rx_miri::start()
 {
-    int err;
+    int err=0;
     ptr_i_buffer = i_buffer_a;
     ptr_q_buffer = q_buffer_a;
     emit radio_frequency(rf_frequency);
     emit level_gain(gain_db);
-    fprintf(stderr, "miri start rx %d\n", err);
     err = mirisdr_reset_buffer(_dev);
     err = mirisdr_read_async( _dev, callback, (void *)this, 64, len_out_device );
+    fprintf(stderr, "miri start rx %d\n", err);
     len_buffer = 0;
     mirisdr_close(_dev);
     emit stop_demodulator();

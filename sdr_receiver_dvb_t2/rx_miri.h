@@ -62,8 +62,8 @@ private:
     mirisdr_dev_t *_dev;
     int err;
     float sample_rate;
-    const int len_out_device = 2304*4*2;
-    const int max_blocks = 2048;//12288;//768
+    const int len_out_device = 256*1024;
+    const int max_blocks = 128;//12288;//768
     int blocks = 1;
     int max_len_out = 0;
     int len_buffer = 0;
