@@ -84,6 +84,7 @@ private:
     int p1_randomize[P1_ACTIVE_CARRIERS];
     void init_p1_randomize();
     complex p1_dbpsk[P1_ACTIVE_CARRIERS];
+    int sample_counter{0};
     bool demodulate(complex *_p1, dvbt2_parameters &_dvbt2);
     void reset_buffer();
 

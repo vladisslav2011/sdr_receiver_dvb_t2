@@ -186,12 +186,14 @@ private:
                                       samplerate_hz> loop_filter_phase_offset;
     float frequency_nco = 0.0f;
     float frequency_est_filtered = 0.0f;
+    float frequency_offset = 0.f;
     constexpr static float damping_ratio = 0.7f;//0.7f
     constexpr static int bw_hz = 4000000;
     proportional_integral_loop_filter<float, float, damping_ratio, bw_hz,
                                       samplerate_hz> loop_filter_frequency_offset;
 
     double sample_rate_est_filtered = 0.0;
+    double sample_rate_est_filtered2 = 0.0;
     float old_sample_rate_est = 0.0f;
 
     std::vector<complex> out_derotate_sample;
@@ -199,6 +201,9 @@ private:
     float sample_rate;
     double resample;
     double max_resample;
+    double min_resample;
+    double max_resample_data;
+    double min_resample_data;
 
     complex* out_interpolator{};
     std::vector<complex> out_decimator{};
@@ -235,6 +240,8 @@ private:
     bool change_gain = false;
     int gain_offset = 0;
     bool enabled_display = false;
+    int sample_counter = 0;
+    int p1_period = 0;
 
     void symbol_acquisition(int _len_in, complex* _in, signal_estimate *signal_);
     void set_guard_interval();

@@ -85,8 +85,12 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
     int len_in = _len_in;
     complex* in = _in;
     bool p1_detect = false;
+    bool trig_display = false;
+    float detected_max = 0.f;
+    float raw_max = 0.f;
     if(_gain_changed) {
-        begin_threshold = _level_detect * 2.0e+5f;
+        //begin_threshold = _level_detect * 2.0e+5f;
+        begin_threshold = powf(10.f,_level_detect * 200.f)*0.1f;
         end_threshold = 0.5f * begin_threshold;
     }
     while(idx_in < len_in) {
@@ -103,15 +107,17 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
                 reset_buffer();
             }
 
-            if(correlation < end_threshold) {
+            if(correlation < max_correlation *0.1f) {
 
                 p1_detect = true;
                 _idx_buffer_sym = idx_buffer;
 
-                memcpy(in_fft, &p1_buffer.read()[P1_C_PART - idx_buffer],
-                        sizeof(complex) * static_cast<unsigned int>(P1_A_PART));
-                p1_buffer.reset();
-                p1_fft = fft->execute();
+                if(!p1_decoded || _reset || enabled_display) {
+                    memcpy(in_fft, &p1_buffer.read()[P1_C_PART - idx_buffer],
+                            sizeof(complex) * static_cast<unsigned int>(P1_A_PART));
+                    p1_buffer.reset();
+                    p1_fft = fft->execute();
+                }
                 double coarse_freq_offset = atan2_approx(arg_max.imag(), arg_max.real()) * (double)P1_HERTZ_PER_RADIAN;
                 if(!p1_decoded || _reset) {
                     for(int shift = 76; shift < 96; ++shift) { // +- 90kHz (one shift +- 8928,5Hz)
@@ -121,6 +127,7 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
                             if(shift != first_active_carrier) {
                                 coarse_freq_offset += (double)(shift - first_active_carrier) * (double)P1_CARRIER_SPASING;
                             }
+                            printf("shift=%d\n",shift);
                             break;
                         }
                     }
@@ -128,24 +135,25 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
                 _p1_decoded = p1_decoded;
                 _coarse_freq_offset = coarse_freq_offset;
 
+                detected_max = max_correlation;
                 reset_buffer();
-
-                if(enabled_display)
+                if((sample_counter >= 10000000)||p1_detect)
                 {
-                    //__show__
-                    cor_os = cor_buffer.read();
-                    //                    cor_os[0].imag(_coarse_freq_offset);
-                    for(int i = 0; i < P1_ACTIVE_CARRIERS; ++i) {
-                        p1_dbpsk[i] = (p1_fft + first_active_carrier)[p1_active_carriers[i]] * 0.1f;
-                    }
-                    emit replace_spectrograph(P1_A_PART, p1_fft);
-                    emit replace_constelation(P1_ACTIVE_CARRIERS, p1_dbpsk);
-                    emit replace_oscilloscope(P1_A_PART, cor_os);
-                    //_______
+                    sample_counter=0;
+                    trig_display = true;
                 }
 
                 break;
 
+            }
+        }else{
+            if(sample_counter >= 10000000)
+            {
+                trig_display = true;
+            }
+            if(idx_in > P1_LEN && p1_decoded)
+            {
+                p1_decoded = false;
             }
         }
 
@@ -164,6 +172,8 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
         const complex cor(correlation);
         if(enabled_display)
             cor_buffer.write(cor);
+        if(raw_max<correlation)
+            raw_max=correlation;
         if(correlation > begin_threshold) {
             correlation_detect = true;
             if(correlation > max_correlation) {
@@ -172,10 +182,30 @@ bool p1_symbol::execute(bool _gain_changed, float _level_detect,
                 idx_buffer = 0;
             }
         }
-
     }
 
     _consume = idx_in;
+    if(enabled_display && trig_display)
+    {
+        //__show__
+        cor_os = cor_buffer.read();
+        if(sample_counter == 0)
+        {
+            //                    cor_os[0].imag(_coarse_freq_offset);
+            for(int i = 0; i < P1_ACTIVE_CARRIERS; ++i) {
+                p1_dbpsk[i] = (p1_fft + first_active_carrier)[p1_active_carriers[i]] * 0.1f;
+            }
+            emit replace_spectrograph(P1_A_PART, p1_fft);
+            emit replace_constelation(P1_ACTIVE_CARRIERS, p1_dbpsk);
+        }
+        emit replace_oscilloscope(P1_A_PART, cor_os);
+        trig_display = false;
+        printf("sample_counter %d %f %f dm=%f rm=%f\n",sample_counter,double(_level_detect),double(begin_threshold),
+            double(detected_max), double(raw_max));
+        sample_counter=0;
+        //_______
+    }
+    sample_counter+=len_in;
 
     return p1_detect;
 

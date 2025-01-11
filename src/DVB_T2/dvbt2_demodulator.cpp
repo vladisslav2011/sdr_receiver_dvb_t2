@@ -52,6 +52,9 @@ dvbt2_demodulator::dvbt2_demodulator(id_device_t _id_device, float _sample_rate,
     unsigned int max_len_symbol = FFT_32K + FFT_32K / 4 + P1_LEN;
     resample =  sample_rate / (SAMPLE_RATE * upsample);
     max_resample = resample + resample * 1.0e-4;// for 100ppm
+    min_resample = resample - resample * 1.0e-4;// for 100ppm
+    max_resample_data = resample + resample * 1.0e-7;
+    min_resample_data = resample - resample * 1.0e-7;
     uint len_max = (max_len_symbol + P1_LEN) * max_resample * upsample;
 
     out_interpolator = static_cast<complex*>(_mm_malloc(sizeof(complex) * len_max * upsample, 32));
@@ -137,8 +140,7 @@ void dvbt2_demodulator::execute(int _len_in, complex* _in, float _level_estimate
             est_chunk += symbol_size;
         }
 
-        arbitrary_resample = resample - sample_rate_est_filtered;
-        if(arbitrary_resample > max_resample) arbitrary_resample = max_resample;
+        arbitrary_resample = resample - sample_rate_est_filtered - sample_rate_est_filtered2;
 
         chunk = static_cast<int>(std::nearbyint(est_chunk * arbitrary_resample * upsample));
         remain = len_in - idx_in;
@@ -153,7 +155,7 @@ void dvbt2_demodulator::execute(int _len_in, complex* _in, float _level_estimate
         }
         for(int i = 0; i < chunk; ++i) {
             //___phase and frequency synchronization___
-            frequency_nco -= frequency_est_filtered;
+            frequency_nco -= frequency_est_filtered + frequency_offset;
             while(frequency_nco > M_PI_X_2) {
                 frequency_nco -= M_PI_X_2;
             }
@@ -183,6 +185,7 @@ void dvbt2_demodulator::execute(int _len_in, complex* _in, float _level_estimate
 
         //___demodulations and get offset synchronization__
         symbol_acquisition(len_out_decimator, &out_decimator[0], signal_);
+        sample_counter += len_out_decimator;
 
     }
 
@@ -198,6 +201,7 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
     float phase_est = 0.0f;
     float frequency_est = 0.0f;
     float sample_rate_est = 0.0f;
+    bool display = false;
 
 
     int consume = 0;
@@ -211,10 +215,12 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
                                  p1_decoded, signal_->p1_reset)) {
                 if(p2_init){
                     next_symbol_type = SYMBOL_TYPE_P2;
+                    p1_period=sample_counter+consume;
+                    sample_counter=-consume;
                 }
                 else if(signal_->frequency_changed){
-                    resample -= signal_->correct_resample * resample;
-                    if(std::abs(signal_->coarse_freq_offset) < 10.0f){
+                    sample_rate_est_filtered += signal_->correct_resample * resample;
+                    if(std::abs(signal_->coarse_freq_offset) < 1.0f){
                         if(p1_decoded){
                             if(!signal_->p1_reset){
                                 init_dvbt2();
@@ -228,6 +234,7 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
                     }
                     else{
                         signal_->change_frequency = true;
+                        //frequency_offset = signal_->coarse_freq_offset * M_PI_X_2;
                     }
                 }
             }
@@ -303,6 +310,7 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
         else if(next_symbol_type == SYMBOL_TYPE_P2) {
             idx_symbol = 0;
             bool crc32_l1_post = false;
+            display = true;
             mutex_out->lock();
             std::vector<complex> tmp;
             deinterleaver->fifo.take(tmp);
@@ -332,6 +340,15 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
 //                        emit l1_dyn_execute(l1_post, dvbt2.c_p2, deinterleaved_cell);
 //                        signal_out->wait(mutex_out);
 //                        mutex_out->unlock();
+                        int p1_exp_period=(dvbt2.guard_interval_size + dvbt2.fft_size) * dvbt2.len_frame + P1_LEN;
+                        float ofs = float(p1_period)/float(p1_exp_period);
+                        float nff = (resample-sample_rate_est_filtered-sample_rate_est_filtered2)*ofs-resample;
+                        printf("%d %f %f %f %f e=%f\n",p1_period-p1_exp_period, resample,sample_rate_est_filtered,ofs,nff,sample_rate_est);
+                        sample_rate_est_filtered2+=(nff-sample_rate_est_filtered)*0.0001f;
+                        if(resample - sample_rate_est_filtered2 > max_resample)
+                            sample_rate_est_filtered2 = resample - max_resample;
+                        if(resample - sample_rate_est_filtered2 < min_resample)
+                            sample_rate_est_filtered2 = resample - min_resample;
                     }else{
                         mutex_out->lock();
                         deinterleaver->fifo.release(tmp);
@@ -385,20 +402,23 @@ void dvbt2_demodulator::symbol_acquisition(int _len_in, complex* _in, signal_est
 
         phase_est_filtered = loop_filter_phase_offset(phase_est * 0.5f, M_PIf32 * 2);
         double step = 8.0e-9;
-        if(old_sample_rate_est - sample_rate_est > 0.0f) {
+
+        #if 1
+        if(old_sample_rate_est - sample_rate_est_filtered2 - sample_rate_est > 0.0f) {
             sample_rate_est_filtered -= step;
-            if(resample - sample_rate_est_filtered < -max_resample) sample_rate_est_filtered += step;
+            if(resample - sample_rate_est_filtered2 - sample_rate_est_filtered < min_resample_data) sample_rate_est_filtered += step;
         }
-        else if(old_sample_rate_est - sample_rate_est < 0.0f){
+        else if(old_sample_rate_est - sample_rate_est_filtered2 - sample_rate_est < 0.0f){
             sample_rate_est_filtered += step;
-            if(resample - sample_rate_est_filtered > max_resample) sample_rate_est_filtered -= step;
+            if(resample - sample_rate_est_filtered2 - sample_rate_est_filtered > max_resample_data) sample_rate_est_filtered -= step;
         }
         old_sample_rate_est = sample_rate_est;
+        #endif
 
     }
-    if(enabled_display)
+    if(enabled_display && display)
     {
-        float sample_rate_offset_hz = (sample_rate_est_filtered *(float) SAMPLE_RATE) / M_PI_X_2;
+        float sample_rate_offset_hz = ((sample_rate_est_filtered + sample_rate_est_filtered2) * (float) SAMPLE_RATE) / M_PI_X_2;
         float frequency_offset_hz = (frequency_est_filtered * (float)SAMPLE_RATE) / M_PI_X_2;
 
         emit replace_null_indicator(sample_rate_offset_hz, frequency_offset_hz);
