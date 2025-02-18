@@ -85,7 +85,7 @@ private slots:
     void status_dev(int _err);
     void finished_dev();
 
-    void update_buffered(int nbuffers, int totalbuffers);
+    void update_buffered(int nbuffers, int totalbuffers, float level);
 
     void radio_frequency(double _rf);
     void level_gain(int _gain);

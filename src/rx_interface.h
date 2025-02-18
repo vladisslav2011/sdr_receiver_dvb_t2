@@ -38,7 +38,7 @@ signals:
     void level_gain(int _gain);
     void stop_demodulator();
     void finished();
-    void buffered(int nbuffers, int totalbuffers);
+    void buffered(int nbuffers, int totalbuffers, float level);
 
 public slots:
     virtual void start() = 0;

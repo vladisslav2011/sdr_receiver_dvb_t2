@@ -255,9 +255,10 @@ void main_window::finished_dev()
     thread = nullptr;
 }
 //---------------------------------------------------------------------------------------------------------------------------------
-void main_window::update_buffered(int nbuffers, int totalbuffers)
+void main_window::update_buffered(int nbuffers, int totalbuffers, float level)
 {
-    ui->label_info_buffered->setText("buffered  :" + QString::number(nbuffers) + "/" + QString::number(totalbuffers));
+    ui->label_info_buffered->setText("buffered  :" + QString::number(nbuffers) + "/" +
+        QString::number(totalbuffers) + " [" + QString::number(level, 'f' ,5) + "]");
     if(ptr_dev && enable_gain_updates)
         ptr_dev->update_gain_frequency_direct();
 }

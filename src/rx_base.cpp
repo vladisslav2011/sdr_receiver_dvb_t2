@@ -165,7 +165,7 @@ template<typename T>void rx_base<T>::rx_execute(int nsamples, float level_detect
             demodulator->mutex->unlock();
             return;
         }
-        emit buffered(len_buffer/nsamples, max_blocks);
+        emit buffered(len_buffer/nsamples, max_blocks, level_detect);
         update_gain_frequency();
 
         if(swap_buffer) {
