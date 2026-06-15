@@ -57,11 +57,12 @@ dvbt2_demodulator::dvbt2_demodulator(id_device_t _id_device, float _sample_rate,
     resample =  sample_rate / (SAMPLE_RATE * upsample);
     max_resample = resample + resample * 1.0e-4;// for 100ppm
     min_resample = resample - resample * 1.0e-4;// for 100ppm
-    uint len_max = (max_len_symbol + P1_LEN) * max_resample * upsample;
+    uint len_max_int = (max_len_symbol + P1_LEN) * upsample + 1;
+    uint len_max_derot = (max_len_symbol + P1_LEN) * (max_resample * upsample) + 1;
 
-    out_interpolator = static_cast<complex*>(_mm_malloc(sizeof(complex) * len_max * upsample * (1.+1e-4), 32));
-    out_decimator.resize(len_max);
-    out_derotate_sample.resize(len_max);
+    out_interpolator = static_cast<complex*>(_mm_malloc(sizeof(complex) * len_max_int, 32));
+    out_decimator.resize(max_len_symbol + P1_LEN + 1);
+    out_derotate_sample.resize(len_max_derot);
     buffer_sym.resize(max_len_symbol);
     for(uint i = 0; i < max_len_symbol; ++i) {
         buffer_sym[i] = {0.0f, 0.0f};
